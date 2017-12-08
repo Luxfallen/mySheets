@@ -61,7 +61,7 @@ class App extends Component {
         toDisplay = <Signup csrf={this.state.csrf} />;
         break;
       case '/changePass':
-        toDisplay = <Signup csrf={this.state.csrf} />;
+        toDisplay = <ChangePass csrf={this.state.csrf} />;
         break;
       case '/app':
         toDisplay = <CharacterSheet csrf={this.state.csrf} />
@@ -82,14 +82,13 @@ class App extends Component {
         <header className="App-header">
           <img src={logo} className="App-logo" alt="logo" />
           <h1 className="App-title">mySheets</h1>
-          <h3 className="tagline">When you forget your sheet at home.</h3>
           <nav>
             <div className="navlink" onClick={this.handleNav} data-dest="/login">Login</div>
             <div className="navlink" onClick={this.handleNav} data-dest="/signup">Sign Up</div>
             <div className="navlink" onClick={this.handleNav} data-dest="/changePass">Change Password</div>
-            <div className="navlink" onClick={this.handleNav} data-dest="/app">Character "Sheets"</div>
-            <div className="navlink" onClick={this.handleNav} data-dest="/calc">Encalculator</div>
-            <div className="navlink" onClick={this.handleNav} data-dest="/donate">Donate</div>
+            <div className="navlink" onClick={this.handleNav} data-dest="#">Character "Sheets"</div>
+            <div className="navlink" onClick={this.handleNav} data-dest="#">Encalculator</div>
+            <div className="navlink" onClick={this.handleNav} data-dest="#">Donate</div>
           </nav>
         </header>
         <p className="App-intro">
@@ -219,11 +218,11 @@ class ChangePass extends Component {
     return (
     <form id="changePassForm" name="changePassForm" onSubmit={this.handleChangePass} action="/changePass" method="POST" className="form">
       <label htmlFor="pass">Old Password: </label>
-      <input id="pass" type="password" name="pass" placeholder="Old Password"/>
+      <input id="pass" type="password" name="pass" placeholder="Old Password"/><br/>
       <label htmlFor="diffPass1">New Password: </label>
-      <input id="diffPass1" type="password" name="diffPass1" placeholder="New Password"/>
+      <input id="diffPass1" type="password" name="diffPass1" placeholder="New Password"/><br/>
       <label htmlFor="diffPass2">Confirm Password: </label>
-      <input id="diffPass2" type="password" name="diffPass2" placeholder="Confirm Password"/>
+      <input id="diffPass2" type="password" name="diffPass2" placeholder="Confirm Password"/><br/>
       <input type="hidden" name="_csrf" value={this.state.csrf}/>
       <input className="formSubmit" type="submit" value="Change Password"/>
     </form>
