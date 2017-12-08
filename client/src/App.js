@@ -210,7 +210,7 @@ class ChangePass extends Component {
       return false;
     }
     // Cannot check password / password match on client-side
-    sendAjax('POST', document.querySelector('#changePassForm').getAttribute('action'),
+    helper.sendAjax('POST', document.querySelector('#changePassForm').getAttribute('action'),
       document.querySelector('#changePassForm'));
     return false;
   }
@@ -259,7 +259,8 @@ class CharacterSheet extends Component{
     }
     // Any 'this' dependant methods need to be bound
     // ----
-    //
+    this.charForm = this.charForm.bind(this);
+    this.handleGenerate = this.handleGenerate.bind(this);
     // ----
   }
 
@@ -269,7 +270,7 @@ class CharacterSheet extends Component{
     const inputHealth = document.querySelector('#maxHealth').value;
     const tempForm = document.querySelector('#charForm');
 
-    characterInfo = {
+    this.state.characterInfo = {
       name: document.querySelector('#charName').value,
       level: document.querySelector('#level').value,
       class: document.querySelector('#class').value,
@@ -309,11 +310,13 @@ class CharacterSheet extends Component{
   }
 
   render() {
+    let toRender;
     if(this.state.newChar === true){
-      toRender = <CharForm csrf = {this.state.csrf} />
+      toRender = this.charForm();
     } else {
-      toRender = <EditForm csrf = {this.state.csrf} />
+      // toRender = <EditForm csrf = {this.state.csrf} />
     }
+    return toRender;
   }
 }
 
