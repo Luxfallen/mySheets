@@ -48,9 +48,7 @@ const sendAjax = (type, action, data, success) => {
 };
 
 // .then!~ need to return all the good stuff once we have it and not sooner
-const getToken = () => sendAjax('GET', '/getToken', null).then((result) => {
-  return result.body.csrfToken;
-});
+const getToken = () => sendAjax('GET', '/getToken', null).then((result) => result.body.csrfToken);
 
 module.exports = {
   handleError,

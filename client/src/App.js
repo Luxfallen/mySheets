@@ -13,11 +13,8 @@ class App extends Component {
       this.setState({csrf: token,});
     });
     this.handleNav = this.handleNav.bind(this);
+    this.handleRedirect = this.handleRedirect.bind(this);
     this.render = this.render.bind(this);
-  }
-
-  handleComponentChange(e) {
-    this.setState({page: window.page,});
   }
 
   handleNav(e) {
@@ -35,36 +32,36 @@ class App extends Component {
       });
   }
 
-  componentDidMount(e) {
-    window.addEventListener('page', this.handleComponentChange);
-  }
-
-  componentWillUnmount(e) {
-    window.removeEventListener('page', this.handleComponentChange);
+  handleRedirect(newPage) {
+    this.setState({
+      page: newPage,
+    })
   }
 
   /** ADD:
-   * Need conditional rendering in 'content'
    * Need conditional rendering of <nav>
-   * How do we keep the user from trying to log in
-   * if they're already logged in?
-   * How do we redirect the page?!
+   * Need Logout
+   * Q: How do we keep the user from trying to log in
+   *    if they're already logged in?
+   * A: ---
+   * Q: How do we redirect the page?!
+   * A: Pass in a function as a prop and it will be called back in the original
    */
 
   render() {
     let toDisplay;
     switch (this.state.page) {
       case '/login':
-        toDisplay = <Login csrf={this.state.csrf} />;
+        toDisplay = <Login csrf={this.state.csrf} onRedirect={this.handleRedirect} />;
         break;
       case '/signup':
-        toDisplay = <Signup csrf={this.state.csrf} />;
+        toDisplay = <Signup csrf={this.state.csrf} onRedirect={this.handleRedirect}/>;
         break;
       case '/changePass':
-        toDisplay = <ChangePass csrf={this.state.csrf} />;
+        toDisplay = <ChangePass csrf={this.state.csrf} onRedirect={this.handleRedirect}/>;
         break;
       case '/app':
-        toDisplay = <CharacterSheet csrf={this.state.csrf} />
+        toDisplay = <CharacterSheet csrf={this.state.csrf} onRedirect={this.handleRedirect}/>
         break;
       case '/calc': 
         toDisplay = <EncounterCalc />
@@ -73,7 +70,7 @@ class App extends Component {
         toDisplay = <Donate />
         break;
       default:
-        toDisplay = <Login csrf={this.state.csrf} />;
+        toDisplay = <Login csrf={this.state.csrf} onRedirect={this.handleRedirect}/>;
         break;
     }
 
@@ -86,7 +83,7 @@ class App extends Component {
             <div className="navlink" onClick={this.handleNav} data-dest="/login">Login</div>
             <div className="navlink" onClick={this.handleNav} data-dest="/signup">Sign Up</div>
             <div className="navlink" onClick={this.handleNav} data-dest="/changePass">Change Password</div>
-            <div className="navlink" onClick={this.handleNav} data-dest="#">Character "Sheets"</div>
+            <div className="navlink" onClick={this.handleNav} data-dest="/app">Character "Sheets"</div>
             <div className="navlink" onClick={this.handleNav} data-dest="#">Encalculator</div>
             <div className="navlink" onClick={this.handleNav} data-dest="#">Donate</div>
           </nav>
@@ -112,6 +109,7 @@ class Login extends Component {
       csrf: props.csrf,
     };
     this.handleLogin = this.handleLogin.bind(this);
+    this.handleRedirect = this.handleRedirect.bind(this);
   }
   
   handleLogin(e) {
@@ -121,8 +119,12 @@ class Login extends Component {
       return false;
     }
     helper.sendAjax('POST', document.querySelector('#loginForm').getAttribute('action'),
-      document.querySelector('#loginForm'));  // .then(()=>{change appstate})
+      document.querySelector('#loginForm')).then(()=>this.handleRedirect('/app'));
     return false;
+  }
+
+  handleRedirect(val) {
+    this.props.onRedirect(val);
   }
 
   render() {
@@ -146,6 +148,7 @@ class Signup extends Component {
       csrf: props.csrf,
     };
     this.handleSignup = this.handleSignup.bind(this);
+    this.handleRedirect = this.handleRedirect.bind(this);
   }
 
   handleSignup(e) {
@@ -165,8 +168,12 @@ class Signup extends Component {
     }
     // Send
     helper.sendAjax('POST', document.querySelector('#signupForm').getAttribute('action'),
-      document.querySelector('#signupForm')); // .then(()=>{change appstate})
+      document.querySelector('#signupForm')).then(()=>this.handleRedirect('/login')); // .then(()=>{change appstate})
     return true;
+  }
+
+  handleRedirect(val) {
+    this.props.onRedirect(val);
   }
 
   render() {
@@ -192,6 +199,7 @@ class ChangePass extends Component {
       csrf: props.csrf,
     }
     this.handleChangePass = this.handleChangePass.bind(this);
+    this.handleRedirect = this.handleRedirect.bind(this);
   }
 
   handleChangePass(e) {
@@ -210,8 +218,12 @@ class ChangePass extends Component {
     }
     // Cannot check password / password match on client-side
     helper.sendAjax('POST', document.querySelector('#changePassForm').getAttribute('action'),
-      document.querySelector('#changePassForm'));
+      document.querySelector('#changePassForm')).then(()=>this.handleRedirect('/app'));
     return false;
+  }
+
+  handleRedirect(val) {
+    this.props.onRedirect(val);
   }
 
   render(){
@@ -252,7 +264,7 @@ class CharacterSheet extends Component{
     // Will be storing all relevant information in state
     // which can then be saved to the account
     this.state = {
-      newChar: false,
+      newChar: true,
       csrf: props.csrf,
       characterInfo: {},
     }
@@ -269,54 +281,92 @@ class CharacterSheet extends Component{
     const inputHealth = document.querySelector('#maxHealth').value;
     const tempForm = document.querySelector('#charForm');
 
-    this.state.characterInfo = {
+    const formResult = {
       name: document.querySelector('#charName').value,
       level: document.querySelector('#level').value,
       class: document.querySelector('#class').value,
       stats: document.querySelectorAll('.stat').value,
       health: [inputHealth,0,inputHealth],
       inventory: [],
-    }
-    helper.sendAjax(tempForm.getAttribute('method'), tempForm.getAttribute('action'), tempForm);
+    };
+
+    this.setState({
+      characterInfo: formResult,
+    });
+    helper.sendAjax(tempForm.getAttribute('method'), tempForm.getAttribute('action'), this.state.characterInfo);
   }
 
   charForm() {
     return (
-      <form id="charForm" name="charForm" onSubmit={this.handleGenerate} action="/new" method="POST" className="form">
-        <label htmlFor="charName">Name: </label>
-        <input id="charName" type="text" name="charName" placeholder="Name"/><br/>
-        <label htmlFor="level">Level: </label>
-        <input id="level" type="number" name="level" placeholder="0" min="1" max="25"/><br/>
-        <label htmlFor="class">Class: </label>
-        <input id="class" type="text" name="class" placeholder="Fighter (Champion)" /><br/>
-        <label htmlFor="str">STR: </label>
-        <input className="stat" type="number" name="str" placeholder="10" min="1" max="30"/><br/>
-        <label htmlFor="dex">DEX: </label>
-        <input className="stat" type="number" name="dex" placeholder="10" min="1" max="30"/><br/>
-        <label htmlFor="con">CON: </label>
-        <input className="stat" type="number" name="con" placeholder="10" min="1" max="30"/><br/>
-        <label htmlFor="int">INT: </label>
-        <input className="stat" type="number" name="int" placeholder="10" min="1" max="30"/><br/>
-        <label htmlFor="wis">WIS: </label>
-        <input className="stat" type="number" name="wis" placeholder="10" min="1" max="30"/><br/>
-        <label htmlFor="cha">CHA: </label>
-        <input className="stat" type="number" name="cha" placeholder="10" min="1" max="30"/><br/>
-        <label htmlFor="maxHealth">Max Health: </label>
-        <input className="health" type="number" name="maxHealth" placeholder="0" min="1" /><br/>
-        <input className="formSubmit" type="submit" value="Generate Character"/>
-      </form>
+      <section id="charSheet">
+        <form id="charForm" name="charForm" onSubmit={this.handleGenerate} action="/new" method="POST" className="form">
+          <label htmlFor="charName">Name: </label>
+          <input id="charName" type="text" name="charName" placeholder="Name"/><br/>
+          <label htmlFor="level">Level: </label>
+          <input id="level" type="number" name="level" placeholder="0" min="1" max="25"/><br/>
+          <label htmlFor="class">Class: </label>
+          <input id="class" type="text" name="class" placeholder="Fighter (Champion)" /><br/>
+          <label htmlFor="str">STR: </label>
+          <input className="stat" type="number" name="str" placeholder="10" min="1" max="30"/><br/>
+          <label htmlFor="dex">DEX: </label>
+          <input className="stat" type="number" name="dex" placeholder="10" min="1" max="30"/><br/>
+          <label htmlFor="con">CON: </label>
+          <input className="stat" type="number" name="con" placeholder="10" min="1" max="30"/><br/>
+          <label htmlFor="int">INT: </label>
+          <input className="stat" type="number" name="int" placeholder="10" min="1" max="30"/><br/>
+          <label htmlFor="wis">WIS: </label>
+          <input className="stat" type="number" name="wis" placeholder="10" min="1" max="30"/><br/>
+          <label htmlFor="cha">CHA: </label>
+          <input className="stat" type="number" name="cha" placeholder="10" min="1" max="30"/><br/>
+          <label htmlFor="maxHealth">Max Health: </label>
+          <input className="health" type="number" name="maxHealth" placeholder="0" min="1" /><br/>
+          <input type="hidden" name="_csrf" value={this.state.csrf}/>
+          <input className="formSubmit" type="submit" value="Generate Character"/>
+        </form>
+        <CharacterList />
+      </section>
     );
   }
 
+  // ADD: Inventory Block, buttons to increase/decrease
+  charData() {
+    if(this.state.characterInfo){
+      return (
+        <section id="charSheet">
+          <div id="charData">
+          <h1>{this.state.characterInfo.name}</h1>
+          <h2>{this.state.characterInfo.level}, {this.state.characterInfo.class}</h2>
+          <ul id="statBlock">
+            <li>STR: {this.state.characterInfo.stats[0]}</li>
+            <li>DEX: {this.state.characterInfo.stats[1]}</li>
+            <li>CON: {this.state.characterInfo.stats[2]}</li>
+            <li>INT: {this.state.characterInfo.stats[3]}</li>
+            <li>WIS: {this.state.characterInfo.stats[4]}</li>
+            <li>CHA: {this.state.characterInfo.stats[5]}</li>
+          </ul>
+          <ul id="healthBlock">
+            <li>Temporary HP: {this.state.characterInfo.health[1]}</li>
+            <li>Current HP: {this.state.characterInfo.health[0]}</li>
+            <li>Max HP: {this.state.characterInfo.health[2]}</li>
+          </ul>
+          <ul id="inventoryBlock">
+          </ul>
+          </div>
+          <CharacterList  />
+        </section>
+      );
+    }
+  };
+    
   render() {
     let toRender;
     if(this.state.newChar === true){
       toRender = this.charForm();
     } else {
-      // toRender = <EditForm csrf = {this.state.csrf} />
+      toRender = this.charData();
     }
     return toRender;
-  }
+  };
 }
 
 // A collection of characters that the user has made
@@ -332,13 +382,28 @@ class CharacterList extends Component{
     // Will be storing all relevant information in state
     // which can then be saved to the account
     this.state = {
-
+      
     };
     // Any 'this' dependant methods need to be bound
     // ----
-    //
+    this.handleCharacters = this.handleCharacters.bind(this);
     // ----
   }
+  handleCharacters() {
+    helper.sendAjax('GET', '/char', null).then((result)=>{
+      console.log(result);
+      // this.state.characterInfo = result.characters;
+      // Then we have to create a bunch of CharacterItems
+      return result;
+    });
+  }
+
+  /*
+  render() {
+    const characters = handleCharacters();    
+    
+  }
+  */ 
 }
 
 /** Planning
@@ -355,7 +420,7 @@ class CharacterItem extends Component{
     // Will be storing all relevant information in state
     // which can then be saved to the account
     this.state = {
-      // Shouldn't have to fuck w/ this @all
+      characterInfo: props.characterInfo,
     };
     // Any 'this' dependant methods need to be bound
     // ----
